@@ -1,0 +1,2 @@
+-e git+https://github.com/belangeo/pyo.git@17b496c59c1501d3bce440ba496664c5e39f9cfc#egg=pyo
+wxPython

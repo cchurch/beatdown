@@ -1,0 +1,4 @@
+-e git+https://github.com/RaphaelKimmig/virtualenv-pythonw-osx.git#egg=fix-osx-virtualenv
+flake8
+ipython
+pycodestyle
