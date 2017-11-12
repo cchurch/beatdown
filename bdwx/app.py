@@ -7,6 +7,7 @@ import socket
 import sys
 import textwrap
 import time
+import weakref
 
 # wxPython
 import wx
@@ -473,15 +474,18 @@ class App(wx.App):
 
     def StartAudioInputMeter(self):
         input_meter = wx.FindWindowById(ID_INPUT_METER)
-        # FIXME: Weakref
         if not input_meter:
             self.StopAudioInputMeter()
             return
 
+        input_meter_ref = weakref.ref(input_meter)
+
         def peak_amp_func(*args):
             meter_data = [min(120, max(0, int(-120.0 if arg < 0.000001 else 20.0 * math.log10(arg)) + 90)) for arg in args]
             # meter_data = [min(120, max(0, int(pyo.rescale(arg, 0, 1, 0, 120)))) for arg in args]
-            input_meter.SetData(meter_data, 0, len(meter_data))
+            input_meter = input_meter_ref()
+            if input_meter:
+                input_meter.SetData(meter_data, 0, len(meter_data))
 
         aic = self.GetAudioInputChannels()
         chans = [n for n in range(8) if (aic & (2 ** n))]

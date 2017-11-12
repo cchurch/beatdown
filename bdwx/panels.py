@@ -47,7 +47,7 @@ class HeaderPanel(wx.Panel):
         hsizer.Add(meter_sizer, 1, wx.ALL | wx.EXPAND, 4)
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
-        vsizer.Add(hsizer, 0, wx.EXPANDv | wx.ALL, 0)
+        vsizer.Add(hsizer, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizerAndFit(vsizer)
 
 
