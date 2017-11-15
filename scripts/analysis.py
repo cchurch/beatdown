@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+'''
+Various attempts and test code for audio analysis and beat detection.
+'''
 
 # Python
 import functools
@@ -6,6 +9,34 @@ import time
 
 # PyO
 import pyo
+
+
+def test_level_to_midi(server):
+    def trig_func(obj):
+        print('velocity', obj.stream.getValue())
+        velo = int(obj.stream.getValue())
+        server.ctlout(28, velo, 1)
+        #print(obj, dir(obj))
+        #print(obj.stream, dir(obj.stream))
+
+    #mc = functools.partial(meter_callback, server)
+    #def mcb(*args, **kwargs):
+    #    print(args, kwargs)
+    #server.setMeterCallable(mcb)
+    inp = pyo.Input([0,1])
+    inx = pyo.Mix(inp)
+    flr = pyo.Follower(inx)
+    scl = pyo.Scale(flr, outmax=31, exp=0.5)
+    rnd = pyo.Round(scl)
+    #rnds = pyo.Switch(rnd, outs=2)
+    #prn = pyo.Print(rnd, 1, message='rnd')
+    chg = pyo.Change(rnd)
+    #pr2 = pyo.Print(chg, 1, message='chg')
+    scl2 = pyo.Scale(rnd, inmax=31, outmin=0, outmax=127)
+    rnd2 = pyo.Round(scl2)
+    trg = pyo.TrigFunc(chg, trig_func, rnd2)
+
+    return trg
 
 
 def test_metronome(server):
@@ -44,6 +75,7 @@ def test_metronome(server):
 
     return bpm, trg, ca
 
+
 def test_table(server):
     def process(): 
         data = table.getTable()
@@ -60,67 +92,12 @@ def test_table(server):
     mix = pyo.Mix(inp)
 
     # Fill the table with the audio signal every processing loop. 
-    tfl = TableFill(mix, table)
+    tfl = pyo.TableFill(mix, table)
 
     return tfl
 
 
-def test_beat2(server):
-    
-    inp = pyo.Input([0, 1])
-    mix = pyo.Mix(inp)
-    
-    ad = pyo.AttackDetector(mix, 0.005, 10, 3, -30, 0.1)
-    ad.ctrl()
-    tmr = pyo.Timer(ad, ad)
-    prn = pyo.Print(tmr, 1, message='tmr')
-    return ad, prn
-    
-    #mix = pyo.Noise()
-    flr1 = pyo.Follower2(mix, 0.005, 0.005)
-    spl1 = pyo.AToDB(flr1)
-    flr2 = pyo.Follower2(mix, 0.1, 0.1)
-    spl2 = pyo.AToDB(flr2)
-    diff = spl2 - spl1
-    thr = pyo.Thresh(diff, 6)
-    nxt = pyo.TrackHold(diff, thr, 1)
-    tmr = pyo.Timer(thr, thr)
-    prn = pyo.Print(tmr, 1, message='thr')
-
-    return prn,nxt
-
-
-def test_beat3(server):
-    
-    inp = pyo.Input([0, 1])
-    mix = pyo.Mix(inp)
-    
-    gt = pyo.Gate(mix, -30, outputAmp=True)
-    prn = pyo.Print(gt, 1, message='gt')
-    return prn
-    
-    ad = pyo.AttackDetector(mix, 0.005, 10, 3, -30, 0.1)
-    ad.ctrl()
-    tmr = pyo.Timer(ad, ad)
-    prn = pyo.Print(tmr, 1, message='tmr')
-    return ad, prn
-    
-    #mix = pyo.Noise()
-    flr1 = pyo.Follower2(mix, 0.005, 0.005)
-    spl1 = pyo.AToDB(flr1)
-    flr2 = pyo.Follower2(mix, 0.1, 0.1)
-    spl2 = pyo.AToDB(flr2)
-    diff = spl2 - spl1
-    thr = pyo.Thresh(diff, 6)
-    nxt = pyo.TrackHold(diff, thr, 1)
-    tmr = pyo.Timer(thr, thr)
-    prn = pyo.Print(tmr, 1, message='thr')
-
-    return prn,nxt
-
-
-def test_beat(server):
-    # Based on http://damian.pecke.tt/beat-detection-on-the-arduino
+def test_beat1(server):
 
     server.server_ms = 0
     last_ms = 0
@@ -181,10 +158,6 @@ def test_beat(server):
     inp = pyo.Input([0, 1])
     mix = pyo.Mix(inp)
     
-    #mix = pyo.Noise()
-    
-    #blp = pyo.ButLP(mix, 200)
-    #bhp = pyo.ButHP(blp, 20)
     flr = pyo.Follower2(mix, 0.5, 0.5)
     fla = pyo.Average(flr, server.getBufferSize())
     #flr.ctrl()
@@ -200,9 +173,14 @@ def test_beat(server):
     #trg = pyo.TrigFunc(ad, trig_func)
     prn2 = pyo.Print(tmr, 1, message='tmr')
     #tfl = pyo.TableFill(tmr, table)
-    return ad, prn, thr, prn2#, tfl
-    
-    
+    return ad, prn, thr, prn2
+
+
+def test_beat1a(server):
+    # Based on http://damian.pecke.tt/beat-detection-on-the-arduino
+    inp = pyo.Input([0, 1])
+    mix = pyo.Mix(inp)
+
     # 20 - 200hz Bandpass Filter
     #q = pyo.Sig(.1) # No idea what Q should be...
     bpf = pyo.ButBP(mix, 63.245, 9.1)
@@ -214,6 +192,72 @@ def test_beat(server):
     sp = pyo.Spectrum(bp2)
     
     return bpf, sp, lpf, bp2
+
+
+def test_beat2(server):
+    inp = pyo.Input([0, 1])
+    mix = pyo.Mix(inp)
+
+    ad = pyo.AttackDetector(mix, 0.005, 10, 3, -30, 0.1)
+    ad.ctrl()
+    tmr = pyo.Timer(ad, ad)
+    prn = pyo.Print(tmr, 1, message='tmr')
+    return ad, prn
+
+
+def test_beat2a(server):
+    inp = pyo.Input([0, 1])
+    mix = pyo.Mix(inp)
+
+    flr1 = pyo.Follower2(mix, 0.005, 0.005)
+    spl1 = pyo.AToDB(flr1)
+    flr2 = pyo.Follower2(mix, 0.1, 0.1)
+    spl2 = pyo.AToDB(flr2)
+    diff = spl2 - spl1
+    thr = pyo.Thresh(diff, 6)
+    nxt = pyo.TrackHold(diff, thr, 1)
+    tmr = pyo.Timer(thr, thr)
+    prn = pyo.Print(tmr, 1, message='thr')
+
+    return prn, nxt
+
+
+def test_beat3(server):
+    inp = pyo.Input([0, 1])
+    mix = pyo.Mix(inp)
+
+    gt = pyo.Gate(mix, -30, outputAmp=True)
+    prn = pyo.Print(gt, 1, message='gt')
+    return prn
+
+
+def test_beat3a(server):
+    inp = pyo.Input([0, 1])
+    mix = pyo.Mix(inp)
+
+    ad = pyo.AttackDetector(mix, 0.005, 10, 3, -30, 0.1)
+    ad.ctrl()
+    tmr = pyo.Timer(ad, ad)
+    prn = pyo.Print(tmr, 1, message='tmr')
+    return ad, prn
+
+
+def test_beat3b(server):
+    inp = pyo.Input([0, 1])
+    mix = pyo.Mix(inp)
+
+    flr1 = pyo.Follower2(mix, 0.005, 0.005)
+    spl1 = pyo.AToDB(flr1)
+    flr2 = pyo.Follower2(mix, 0.1, 0.1)
+    spl2 = pyo.AToDB(flr2)
+    diff = spl2 - spl1
+    thr = pyo.Thresh(diff, 6)
+    nxt = pyo.TrackHold(diff, thr, 1)
+    tmr = pyo.Timer(thr, thr)
+    prn = pyo.Print(tmr, 1, message='thr')
+
+    return prn, nxt
+
 
 def main():
     server = pyo.Server().boot()
@@ -236,24 +280,18 @@ def main():
                     server.start()
                 break
 
-        #def process_callback():
-        #    pass
+        # res = test_level_to_midi(server)
+        # res = test_metronome(server)
+        # res = test_table(server)
+        #res = test_beat1(server)
+        #res = test_beat1a(server)
+        #res = test_beat2(server)
+        #res = test_beat2a(server)
+        #res = test_beat3(server)
+        #res = test_beat3a(server)
+        res = test_beat3b(server)
 
-        #server.setCallback(process_callback)
-
-        #res = test_metronome(server)
-        
-        res = test_beat3(server)
-        
-
-
-        #bpm.ctrl()#[pyo.SLMap(30, 360, 'lin', 120, 'int', dataOnly=True)])
         server.gui(locals(), timer=False)
-        #try:
-        #    while True:
-        #        time.sleep(1)
-        #except KeyboardInterrupt:
-        #    pass
     finally:
         if server.getIsBooted():
             if server.getIsStarted():

@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+'''
+Enable InControl mode on Launchpad Mini (send a C1 note).
+'''
 
 # Python
 import time
@@ -16,7 +19,7 @@ try:
             device_names, device_indexes = pyo.pm_get_output_devices()
             device_dict = dict(zip(device_indexes, device_names))
             for device_index, device_name in device_dict.items():
-                # print(device_index, device_name)
+                print(device_index, device_name)
                 if 'incontrol' in device_name.lower():
                     if midi_output_device != device_index:
                         server.shutdown()
