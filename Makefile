@@ -17,6 +17,7 @@ clean-pyc: requirements
 
 fix-virtualenv-python: requirements
 	fix-osx-virtualenv $VIRTUAL_ENV
+	# Only works for Python 3.5 on OSX!
 	test -h $VIRTUAL_ENV/bin/python3.5 || (cd $VIRTUAL_ENV/bin && mv python3.5 original-python3.5 && ln -s python python3.5)
 
 develop: clean-pyc fix-virtualenv-python
