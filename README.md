@@ -18,14 +18,14 @@ Installation
 ============
 
 * Assuming an OS X install, get Python here:
- 
-    https://www.python.org/downloads/mac-osx/
+
+   https://www.python.org/downloads/mac-osx/
 
 * Install pyo for your version of Python using the installer: 
-  
-    http://ajaxsoundstudio.com/software/pyo/
+ 
+   http://ajaxsoundstudio.com/software/pyo/
 
-* Add Python3 to your system path
+* Add Python3 to your system path:
 
    vim ~/.bash/profile
 
@@ -38,7 +38,7 @@ Installation
 Recommended Software
 ====================
 
-* LightKey controls DMX stage lighting and is free for up to 24 channels and can be configured to respond to MIDI events
+* LightKey controls DMX stage lighting and is free for up to 24 channels and can be configured to respond to MIDI events:
 
    http://www.lightkeyapp.com/en/
 
