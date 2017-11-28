@@ -49,6 +49,8 @@ Usage
 
 To open the GUI, launch ./beatdown.py and then select your input and MIDI channels.  You should be able to observe the changes in the VU meter.
 
+To send MIDI clock (in progress), run ./midiclock.py in the scripts directory.
+
 License
 =======
 
