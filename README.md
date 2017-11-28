@@ -27,10 +27,11 @@ Installation
 
 * Add Python3 to your system path
 
-    vim ~/.bash/profile
-    export PATH=/Library/Frameworks/Python.framework/Versions/3.6/bin/:$PATH
+   vim ~/.bash/profile
+
+   export PATH=/Library/Frameworks/Python.framework/Versions/3.6/bin/:$PATH
    
-    source ~/.bash_profile
+   source ~/.bash_profile
 
 * pip3 install -U wxPython
 
@@ -39,7 +40,7 @@ Recommended Software
 
 * LightKey controls DMX stage lighting and is free for up to 24 channels and can be configured to respond to MIDI events
 
-    http://www.lightkeyapp.com/en/
+   http://www.lightkeyapp.com/en/
 
 * MIDI responsive VJ software of your choice (optional)
 
