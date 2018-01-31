@@ -9,6 +9,7 @@ import wx.lib.agw.peakmeter
 
 # BeatDown
 from .constants import *  # noqa
+from .controls import *  # noqa
 from .dialogs import *  # noqa
 from .utils import *  # noqa
 
@@ -137,6 +138,7 @@ class SpeedPanel(wx.Panel):
         self.SetForegroundColour(COLOR_FOREGROUND)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
+        # Header with enabled checkbox.
         header_sizer = wx.BoxSizer(wx.HORIZONTAL)
         header_text = wx.StaticText(self, wx.ID_ANY, 'Speed')
         header_text.SetFont(header_text.GetFont().Scale(1.2).MakeBold())
@@ -144,6 +146,8 @@ class SpeedPanel(wx.Panel):
         enabled_label = wx.StaticText(self, wx.ID_ANY, 'Enabled:')
         header_sizer.Add(enabled_label, 0, wx.ALIGN_BOTTOM | wx.LEFT, 4)
         enabled_checkbox = wx.CheckBox(self, wx.ID_ANY, '')
+        enabled_checkbox.SetValue(wx.GetApp().GetSpeedEnabled())
+        self.Bind(wx.EVT_CHECKBOX, self.OnEnabledCheck, enabled_checkbox)
         header_sizer.Add(enabled_checkbox, 0, wx.ALIGN_BOTTOM | wx.LEFT, 4)
         sizer.Add(header_sizer, 0, wx.EXPAND | wx.ALL, 4)
 
@@ -153,8 +157,40 @@ class SpeedPanel(wx.Panel):
         spacer_panel.SetBackgroundColour(COLOR_LINES)
         sizer.Add(spacer_panel, 0, wx.EXPAND | wx.ALL, 4)
 
-        sizer.AddStretchSpacer(1)
+        # Sizer for controls.
+        gbsizer = wx.GridBagSizer(8, 8)
+        gbsizer.SetCols(2)
+        gbsizer.AddGrowableCol(0)
+        gbsizer.AddGrowableCol(1)
+
+        # BPM settings.
+        bpm_label = wx.StaticText(self, wx.ID_ANY, 'BPM:')
+        gbsizer.Add(bpm_label, (0, 0), (1, 1), wx.ALL | wx.ALIGN_RIGHT, 0)
+        bpm_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        bpm_value = str(wx.GetApp().GetSpeedBPM())
+        bpm_spinner = wx.SpinCtrl(self, wx.ID_ANY, size=(80, -1), value=bpm_value, min=40, max=480)
+        self.Bind(wx.EVT_TEXT, self.OnBPMSpinner, bpm_spinner)
+        bpm_sizer.Add(bpm_spinner, 0, wx.ALL, 0)
+        gbsizer.Add(bpm_sizer, (0, 1), (1, 1), wx.ALL, 0)
+
+        # Beat Indicator.
+        beat_display = BeatDisplay(self, ID_SPEED_DISPLAY, size=(-1, 30))
+        beat_display.SetValue(50)
+        beat_display.SetForegroundColour(wx.GREEN)
+        beat_display.SetBackgroundColour(wx.Colour(0, 0, 0, 0))
+        gbsizer.Add(beat_display, (1, 1), (1, 1), wx.EXPAND | wx.ALL, 1)
+
+        sizer.Add(gbsizer, 1, wx.EXPAND | wx.ALL, 8)
         self.SetSizerAndFit(sizer)
+
+    def OnEnabledCheck(self, event):
+        wx.GetApp().SetSpeedEnabled(event.IsChecked())
+
+    def OnEnabledUpdate(self, event):
+        event.Enable(wx.GetApp().GetSpeedEnabled())
+
+    def OnBPMSpinner(self, event):
+        wx.GetApp().SetSpeedBPM(event.GetEventObject().GetValue())
 
 
 class StrengthPanel(wx.Panel):

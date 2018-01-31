@@ -43,6 +43,7 @@ COLOR_LINES = wx.Colour(0x30, 0x30, 0x30)
 ID_INPUT_METER = wx.NewId()
 
 ID_STRENGTH_GAUGE = wx.NewId()
+ID_SPEED_DISPLAY = wx.NewId()
 
 ID_AUDIO_INPUT_SELECT = wx.NewId()
 ID_STATUS_TEXT = wx.NewId()

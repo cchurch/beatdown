@@ -1,8 +1,114 @@
 # Python
 import math
+import threading
 
 # PyO
 import pyo
+
+
+class MidiListener(pyo.MidiListener):
+
+    def __init__(self, *args, **kwargs):
+        super(MidiListener, self).__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
+
+    def run(self):
+        self._listener.play()
+        while not self._stop_event.wait(0.1):
+            pass
+        self._listener.stop()
+        self._stop_event.clear()
+
+    def stop(self):
+        self._stop_event.set()
+
+
+class MidiDispatcher(pyo.MidiDispatcher):
+
+    def __init__(self, *args, **kwargs):
+        super(MidiDispatcher, self).__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
+
+    def run(self):
+        self._dispatcher.play()
+        while not self._stop_event.wait(0.1):
+            pass
+        self._dispatcher.stop()
+        self._stop_event.clear()
+
+    def stop(self):
+        self._stop_event.set()
+
+
+class BeatGenerator(object):
+
+    def __init__(self, callback=None):
+        self._callback = callback
+        self._enabled = False
+        self._bpm = 120
+        self._sig = None
+        self._met = None
+        self._trg = None
+
+    def _trig_callback(self):
+        if self._callback:
+            self._callback(b'\xf8')
+
+    def play(self):
+        if not self._sig:
+            self._sig = pyo.Sig(value=self._bpm)
+        if not self._met:
+            tpb = 2.5 / (pyo.Clip(pyo.Round(self._sig), 30, 360))
+            self._met = pyo.Metro(time=tpb)
+            self._met.play()
+            if self._callback:
+                self._callback(b'\xfa')
+        if not self._met.isPlaying():
+            self._met.play()
+            if self._callback:
+                self._callback(b'\xfb')
+        if not self._trg:
+            self._trg = pyo.TrigFunc(self._met, self._trig_callback)
+
+    def pause(self):
+        if self._met and self._met.isPlaying():
+            self._met.stop()
+            if self._callback:
+                self._callback(b'\xfc')
+
+    def isPaused(self):
+        return bool(not self._met or not self._met.isPlaying())
+
+    def stop(self):
+        self.pause()
+        self._sig = None
+        self._met = None
+        self._trg = None
+
+    def getEnabled(self):
+        return self._enabled
+
+    def setEnabled(self, value):
+        value = bool(value)
+        if self.enabled != value:
+            self._enabled = value
+        if value:
+            self.play()
+        else:
+            self.stop()
+
+    def getBPM(self):
+        return self._bpm
+
+    def setBPM(self, value):
+        value = min(360, max(30, int(value)))
+        if self._bpm != value:
+            self._bpm = value
+            if self._sig:
+                self._sig.setValue(self._bpm)
+
+    enabled = property(getEnabled, setEnabled)
+    bpm = property(getBPM, setBPM)
 
 
 class StrengthAnalyzer(object):

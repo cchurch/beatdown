@@ -208,8 +208,14 @@ class App(wx.App):
     SetMidiOutput = lambda s, v: s.SetMidiOutputSetting('midi_output', int, v)
 
     # "Speed" settings (beat clock based on attack and beat detection).
+    def SetSpeedSetting(self, name, type_=str, value=''):
+        self.SetSetting(name, type_, value)
+        self.UpdateBeatGenerator()
+
     GetSpeedEnabled = lambda s: s.GetSetting('speed_enabled', bool, False)
-    SetSpeedEnabled = lambda s, v: s.SetSetting('speed_enabled', bool, v)
+    SetSpeedEnabled = lambda s, v: s.SetSpeedSetting('speed_enabled', bool, v)
+    GetSpeedBPM = lambda s: s.GetSetting('speed_bpm', int, 120)
+    SetSpeedBPM = lambda s, v: s.SetSpeedSetting('speed_bpm', int, v)
 
     # "Strength" settings (velocity output based on sound level).
     def SetStrengthSetting(self, name, type_=str, value=''):
@@ -366,9 +372,8 @@ class App(wx.App):
         if audio_input in audio_inputs:
             server.setInputDevice(audio_input)
         server.boot()
-        if audio_input in audio_inputs:
-            server.start()
-            wx.PostEvent(self.GetTopWindow(), AudioServerStartedEvent(0))
+        server.start()
+        wx.PostEvent(self.GetTopWindow(), AudioServerStartedEvent(0))
 
     def ShutdownAudioServer(self):
         if hasattr(self, '_pyo_server'):
@@ -390,10 +395,10 @@ class App(wx.App):
             midi_inputs = self.GetMidiInputs()
             midi_input = self.GetMidiInput()
             if midi_input in midi_inputs:
-                self._midi_listener = pyo.MidiListener(self.OnMidiListenerCallback, midi_input, reportdevice=True)
+                self._midi_listener = MidiListener(self.OnMidiListenerCallback, midi_input, reportdevice=True)
                 self._midi_listener.start()
             else:
-                self._midi_listener = pyo.MidiListener(self.OnMidiListenerCallback, reportdevice=True)
+                self._midi_listener = MidiListener(self.OnMidiListenerCallback, reportdevice=True)
         return self._midi_listener
 
     def GetMidiListenerStatus(self):
@@ -424,10 +429,10 @@ class App(wx.App):
             midi_output = self.GetMidiOutput()
             print(midi_outputs, midi_output)
             if midi_output in midi_outputs:
-                self._midi_dispatcher = pyo.MidiDispatcher(midi_output)
+                self._midi_dispatcher = MidiDispatcher(midi_output)
                 self._midi_dispatcher.start()
             else:
-                self._midi_dispatcher = pyo.MidiDispatcher()
+                self._midi_dispatcher = MidiDispatcher()
             print(self._midi_dispatcher.getDeviceInfos())
         return self._midi_dispatcher
 
@@ -447,11 +452,8 @@ class App(wx.App):
     def OnRebootMidiDispatcher(self):
         if hasattr(self, '_midi_dispatcher'):
             if self._midi_dispatcher.is_alive():
-                if hasattr(self._midi_dispatcher, 'stop'):
-                    self._midi_dispatcher.stop()
-                else:
-                    self._midi_dispatcher._dispatcher.stop()
-                self._midi_dispatcher.join(1.0)  # FIXME: Doesn't really stop.
+                self._midi_dispatcher.stop()
+                self._midi_dispatcher.join(1.0)
             del self._midi_dispatcher
         self.GetMidiDispatcher()
 
@@ -466,11 +468,12 @@ class App(wx.App):
     def OnAudioServerStarted(self, event):
         self.StartAudioInputMeter()
         self.StartAudioStrengthAnalyzer()
-        # self.InitBeatGenerator()
+        self.StartBeatGenerator()
 
     def OnAudioServerStopped(self, event):
         self.StopAudioInputMeter()
         self.StopAudioStrengthAnalyzer()
+        self.StopBeatGenerator()
 
     def StartAudioInputMeter(self):
         input_meter = wx.FindWindowById(ID_INPUT_METER)
@@ -510,6 +513,41 @@ class App(wx.App):
             data2 = velocity & 0x7f
             self.SendMidiEvent(status, data1, data2)
 
+    def OnBeatClock(self, msg=None):
+        if not msg:
+            return
+        self.SendMidiSysEvent(msg)
+        if not hasattr(self, '_speed_display'):
+            self._speed_display = wx.FindWindowById(ID_SPEED_DISPLAY)
+        if self._speed_display:
+            if msg == b'\xf8':
+                self._speed_display.NextClock()
+            else:
+                self._speed_display.SetValue(None)
+            self._speed_display.Refresh()
+
+    def StartBeatGenerator(self):
+        self.UpdateBeatGenerator()
+
+    def UpdateBeatGenerator(self):
+        if not hasattr(self, '_beat_generator'):
+            self._beat_generator = BeatGenerator(self.OnBeatClock)
+
+        enabled = self.GetSpeedEnabled()
+        if not enabled and self._beat_generator.enabled:
+            self._beat_generator.enabled = enabled
+
+        self._beat_generator.bpm = self.GetSpeedBPM()
+
+        if enabled and not self._beat_generator.enabled:
+            self._beat_generator.enabled = enabled
+        if enabled:
+            self._beat_generator.play()
+
+    def StopBeatGenerator(self):
+        if hasattr(self, '_beat_generator'):
+            self._beat_generator.stop()
+
     def StartAudioStrengthAnalyzer(self):
         self.UpdateAudioStrengthAnalyzer()
 
@@ -541,15 +579,6 @@ class App(wx.App):
     def StopAudioStrengthAnalyzer(self):
         if hasattr(self, '_strength_analyzer'):
             self._strength_analyzer.stop()
-
-    def InitBeatGenerator(self):
-        b = pyo.Beat()
-        self._bp1 = pyo.Print(b['tap'], 1, message='tap')
-        self._bp2 = pyo.Print(b['amp'], 1, message='amp')
-        self._bp3 = pyo.Print(b['dur'], 1, message='dur')
-        self._bp4 = pyo.Print(b['end'], 1, message='end')
-        self._bp5 = pyo.Print(b, 1, message='trg')
-        b.play()
 
     GetLogLevel = lambda s: s.GetSetting('log_level', str, 'normal')
 
